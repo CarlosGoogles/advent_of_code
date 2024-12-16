@@ -30,6 +30,15 @@ const vector<ii> MOVES = {
     ii(0, -1)
 };
 
+string tostring(const ii p) {
+    return to_string(p.first) + "_" + to_string(p.second);
+}
+
+string tostring(const ii p, const int dir) {
+    return tostring(p) + "_" + to_string(dir);
+}
+
+
 inline bool isValid(const vector<string>& mat, const int& x, const int& y) {
     return 0 <= x && x < mat.size() &&
             0 <= y && y < mat[x].size();
@@ -51,20 +60,7 @@ void printMat(const vector<string>& mat) {
     for (const string& row: mat) {
         cout << row << endl;
     }
-}
-
-ll countAns(const vector<string>& mat) {
-    ll ret = 0;
-    
-    for (const string& row: mat) {
-        for (char pos : row) {
-            ret += pos == 'X';
-        }
-    }
-
-    // printMat(mat);
-
-    return ret;
+    cout << endl;
 }
 
 int getDir(const char c) {
@@ -80,14 +76,16 @@ int getDir(const char c) {
     return 3;
 }
 
-void run(vector<string>& mat, ii p) {
-    int dir = getDir(mat[p.first][p.second]);
-
-    mat[p.first][p.second] = 'X';
+bool checkForLoop(vector<string> mat, ii p, int dir, unordered_set<string> vis) {
     while (true) {
+        if (vis.find(tostring(p, dir)) != vis.end()) {
+            return true;
+        }
+        vis.insert(tostring(p, dir));
+
         ii next = ii(p.first + MOVES[dir].first, p.second + MOVES[dir].second);
         if (! isValid(mat, next.first, next.second)) {
-            return;
+            return false;
         }
 
         if (mat[next.first][next.second] == '#') {
@@ -95,17 +93,51 @@ void run(vector<string>& mat, ii p) {
         }
         else {
             p = next;
-            mat[p.first][p.second] = 'X';
         }
     }
+
+    return false;
+}
+
+int run(vector<string>& mat, ii p) {
+    int dir = getDir(mat[p.first][p.second]);
+    mat[p.first][p.second] = '.';
+
+    unordered_set<string> ret;
+    unordered_set<string> vis;
+    
+    while (true) {
+        ii next = ii(p.first + MOVES[dir].first, p.second + MOVES[dir].second);
+        if (! isValid(mat, next.first, next.second)) {
+            break;
+        }
+
+        if (mat[next.first][next.second] == '#') {
+            vis.insert(tostring(p, dir));
+            dir = (dir + 1) % 4;
+        }
+        else {
+            if (mat[next.first][next.second] == '.') {
+                mat[next.first][next.second] = '#';
+                if (ret.find(tostring(next)) == ret.end() && checkForLoop(mat, p, dir, vis)) {
+                    ret.insert(tostring(next));
+                }
+                mat[next.first][next.second] = '.';
+            }
+            vis.insert(tostring(p, dir));
+            mat[p.first][p.second] = '$';
+            p = next;
+        }
+    }
+
+    return ret.size();
 }
 
 ll solve(vector<string>& mat) {
     ll ret = 0;
 
     ii start = findStart(mat);
-    run(mat, start);
-    ret = countAns(mat);
+    ret = run(mat, start);
 
     return ret;
 }
